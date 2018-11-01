@@ -1,0 +1,519 @@
+---
+title: "PrijectEDA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/', echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+
+Exploring A Red Wine Dataset by Rashed S.
+========================================================
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using in your analysis in this code
+# chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk. This
+# prevents the code from displaying in the knitted HTML output. You should set
+# echo=FALSE for all code chunks in your file, unless it makes sense for your
+# report to show the code that generated a particular plot.
+
+# The other parameters for "message" and "warning" should also be set to FALSE
+# for other code chunks once you have verified that each plot comes out as you
+# want it to. This will clean up the flow of your report.
+setwd("C:/Users/The Dark Knight/Desktop/Data_proj6")
+
+# Remove warnings globally
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/', echo=FALSE, warning=FALSE, message=FALSE)
+#install.packages("reshape")
+#install.packages("GGally")
+#install.packages("memisc")
+#install.packages("pastecs")
+#install.packages("corrplot")
+library(ggplot2)
+library(reshape)
+library(reshape2)
+library(dplyr)
+library(RColorBrewer)
+library(GGally)
+library(scales)
+library(memisc)
+library(gridExtra)
+library(pastecs)
+library(corrplot)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+rw <- read.csv("wineQualityReds.csv")
+
+```
+
+> This tidy data set contains 1,599 red wines with 11 variables on the chemical properties of the wine.
+At least 3 wine experts rated the quality of each wine, providing a rating between 0 (very bad) and 10 (very excellent).
+More info could be found [here](https://s3.amazonaws.com/udacity-hosted-downloads/ud651/wineQualityInfo.txt)
+
+```{r echo=FALSE, Summery}
+#removing the x column because its useless
+rw <- within(rw, rm(X))
+str(rw)
+summary(rw)
+
+# This Dataset has 1599 observations with 13 varibles 
+# converting the quality to ordered 
+rw$quality <- factor(rw$quality, ordered = T)
+table(rw$quality)
+
+# Removing the top 1% from these four columns for having the most drastic outliers.
+rw <- rw[rw$fixed.acidity < quantile(rw$fixed.acidity, 0.99),]
+rw <- rw[rw$residual.sugar < quantile(rw$residual.sugar, 0.99),]
+rw <- rw[rw$total.sulfur.dioxide < quantile(rw$total.sulfur.dioxide, 0.99),]
+rw <- rw[rw$free.sulfur.dioxide < quantile(rw$free.sulfur.dioxide, 0.99),]
+summary(rw)
+str(rw)
+
+```
+
+Looking at the quality the most ratings are 5 shortly followed by 6 with 3 the lowest rating apears to be 3 and 8.
+We removed the 1% from (Fixed acidity, residual sugar, total sulfur dioxide, and free sulfur dioxide) for having huge outliers 
+
+# Univariate Plots Section
+
+Below is a Histogram for each of the variables we have.
+```{r echo=FALSE, Univariate_Plots}
+get_histogram <- function(var, xlabel) {
+  return (qplot(x = var, data = rw, xlab = xlabel))
+}
+grid.arrange(get_histogram(rw$fixed.acidity, 'fixed.acidity'),
+get_histogram(rw$volatile.acidity, 'volatile.acidity'),
+get_histogram(rw$citric.acid, 'citric.acid'),
+get_histogram(rw$residual.sugar, 'residual.sugar'),
+get_histogram(rw$chlorides, 'chlorides'),
+get_histogram(rw$free.sulfur.dioxide, 'free.sulfur.dioxide'),
+get_histogram(rw$total.sulfur.dioxide, 'total.sulfur.dioxide'),
+get_histogram(rw$density, 'density'),
+get_histogram(rw$pH, 'pH'),
+get_histogram(rw$sulphates, 'sulphates'),
+get_histogram(rw$alcohol, 'alcohol'),
+get_histogram(rw$quality, 'quality'),
+ncol = 3)
+
+#Creating histograms for each variable 
+```
+
+Here we have a compared plots between sulfur dioxide and log10 sulfur dioxide
+Also we have a compared plots between sulphates and log10 sulphates 
+The log10 is used to make the ploting look cleaner rather than the long tailed one from the normal plots.
+
+```{r echo=FALSE, Plot1}
+# Comparing sulphates to log 10 sulphates
+grid.arrange(qplot(x = sulphates, data = rw, binwidth = 0.01),
+             qplot(x = log10(sulphates), data = rw, binwidth=0.01), ncol = 2)
+# Printing the stats using pastec library.
+stat.desc(rw$sulphates)
+stat.desc(log10(rw$sulphates))
+# Comparing log10 total sulfur dioxide to total sulfur dioxide
+grid.arrange(qplot(x = total.sulfur.dioxide, 
+                   data = rw, binwidth=1),
+             qplot(x = log10(total.sulfur.dioxide), 
+                   data = rw, binwidth = 0.04), ncol = 2)
+# Printing the stats using pastec library
+stat.desc(rw$total.sulfur.dioxide)
+stat.desc(log10(rw$total.sulfur.dioxide))
+```
+
+
+Again we compare the log10 for both fixed acidity and volatile acidity to their normal plots to give it a more clean look 
+
+
+```{r echo=FALSE, Plot2}
+# Comparing log10 fixed acidity and fixed acidity
+grid.arrange(qplot(x = fixed.acidity, 
+                   data = rw, binwidth = 0.1),
+             qplot(x = log10(fixed.acidity), 
+                   data = rw, binwidth=0.01), ncol = 2)
+# Printing the stats using pastec library.
+stat.desc(rw$fixed.acidity)
+stat.desc(log10(rw$fixed.acidity))
+# Compare log10 volatile acidity and volatile acidity 
+# to get a more normal distribution 
+grid.arrange(qplot(x = volatile.acidity, 
+                   data = rw, binwidth=0.01),
+             qplot(x = log10(volatile.acidity), 
+                   data = rw, binwidth = 0.01), ncol = 2)
+# Printing the stats using pastec library.
+stat.desc(rw$volatile.acidity)
+stat.desc(log10(rw$volatile.acidity))
+```
+
+We removed the 0 valued critic acid and compare it to the quality to see if it effects our dataset, turns out it is not drastically changed.
+
+```{r echo=FALSE, citric.acidcomp}
+# removing all the 0 critic acid fromt the data and saving it in criticrw
+criticrw <- rw[rw$citric.acid > 0,]
+grid.arrange(qplot(rw$quality, xlab = 'quality'), qplot(criticrw$quality, xlab = 'critic quality'), ncol=2)
+```
+
+
+Next we are going to categorize the quality into Bad, Avarage, and Excellent based on the ratings. Bellow we notice that the majority of the ratings are Avarage.
+
+````{r echo=FALSE, categorize_rating}
+# catigorizing the qualities into Bad, Avarage, Excellent 
+rw$rating <- ifelse(rw$quality < 5, 'bad', 
+                    ifelse(rw$quality < 7, 'average', 
+                           ifelse(rw$quality > 6, 'excellent', 'none')))
+rw$rating <- ordered(rw$rating, levels = c('bad', 'average', 'excellent'))
+summary(rw$rating)
+qplot(rw$rating, xlab="Quality")
+```
+
+
+# Univariate Analysis
+
+
+### What is the structure of your dataset?
+The dataset contains 1534 observations and 13 variabls after taking care of the top 1% which had massive outliers(fixed acidity, residual sugar, total sulfur dioxide, and free sulfur dioxide).
+
+### What is/are the main feature(s) of interest in your dataset?
+The main focus is the quality of the red wine, I am highly interested in wine and knowing what makes the quality better is my main focus.
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+I believe the residual sugar, density, alchol, and ph will help determain the quality more.
+
+### Did you create any new variables from existing variables in the dataset?
+Yes in the previous section I created a sub category for the ratings; bad, avarage, excellent.
+
+### Of the features you investigated, were there any unusual distributions? \Did you perform any operations on the data to tidy, adjust, or change the form \of the data? If so, why did you do this?
+The x column was removed due to it being useless, 
+The top 1% was removed from (fixed acidity, residual sugar, total sulfur dioxide, and free sulfur dioxide) for having large outlier, 
+The Sulphates, fixed acidity, fixed sulfur dioxide, and total sulfur dioxide were log10 transformed for having long tail plot.
+
+
+# Bivariate Plots Section
+
+Bellow is a correlation matrix to see the relations between variabls
+```{r echo=FALSE, BPlot1}
+#Creating a a correlation matrix 
+rw$numquality <- as.numeric(rw$quality)
+# storing the correlation in the dataset
+Mat <- cor(rw[c(1:11, 14)])
+# Displaying the correlation results
+corrplot(Mat, order = "hclust", insig = "pch", addrect = 3)
+
+```
+
+Bellow is a scatterplot between fixed acidity and ph. The correlation coefficient is -0.67 which indicates that the ph rate drops when the fixed acidity increases.
+
+```{r echo=FALSE, BPlot2}
+# Creating a scatterplot to see the relation between acidities and pH
+ggplot(aes(x = fixed.acidity, y = pH), data = rw) +
+  geom_point(color = "#008000", alpha = 1/4) + 
+  stat_smooth() +
+  labs(x = "Fixed Acidity")
+cor(rw$fixed.acidity, rw$pH)
+```
+
+Next we look at the correlation between critic acid and ph. which is -0.52(weaker than the previous fixed acidity)
+
+```{r echo=FALSE, BPlot3}
+ggplot(aes(x = citric.acid, y = pH), data = rw) +
+  geom_point(alpha = 1/4, color = "#008000") + 
+  stat_smooth() +
+  labs(x = 'Critic Acid')
+cor(rw$citric.acid, rw$pH)
+```
+
+Now we look at the correlation coefficient between volatile acidity and ph which is 0.238 a positive value indicating that the volatile acidity increases when ph level increase.
+
+```{r echo=FALSE, BPlot4}
+ggplot(aes(x = volatile.acidity, y = pH), data = rw) +
+  geom_point(color = "#008000", alpha = 1/4) + 
+  stat_smooth() + 
+  labs(x = "Volatile Acidity")
+cor(rw$volatile.acidity, rw$pH)
+```
+
+The bellow plot is a boxplot to show the relation between the quality and the ph level. The center x is the median since its more acurate than the mean. median for the bad is the highest 3.38, but overall they're close.
+
+```{r echo=FALSE, B.boxPlot1}
+# Create boxplot for ph quality
+ggplot(aes(x = rating, y = pH), data = rw) +
+  geom_boxplot() +
+  stat_summary(fun.y = median, geom = 'point', shape = 4) +
+  coord_cartesian(ylim = c(2.85, 3.75)) +
+  labs(x = 'Quality')
+by(rw$pH, rw$rating, summary)
+
+```
+
+Like we did before we look at the boxplot of alcohol the median rating for bad is 10, avarage 10, and the excellent the highest median 11.6. we note that the bad and average are the same where the excellent is the highest.
+
+```{r echo=FALSE, B.boxPlot2}
+#boxplot for the alchol quality
+ggplot(aes(x = rating, y = alcohol), data = rw) +
+  geom_boxplot() +
+  stat_summary(fun.y = median, geom = 'point', shape = 4) +
+  labs(x = 'Quality')
+by(rw$alcohol, rw$rating, summary)
+
+```
+
+A boxplot of Volatile acidity quality with the median center. Median of bad 0.68, average 0.54, excellent 0.37. close ratings overall.
+
+```{r echo=FALSE, B.boxPlot3}
+#boxplot for the volatile acidity quality
+ggplot(aes(x = rating, y = volatile.acidity), data = rw) +
+  geom_boxplot() +
+  stat_summary(fun.y = median, geom = 'point', shape = 4) +
+  coord_cartesian(ylim = c(0.1, 1.2)) +
+  labs(x = 'Quality')
+by(rw$volatile.acidity, rw$rating, summary)
+
+```
+
+boxplot of critic acid quality with the central median. Bad 0.075, average 0.24, excellent 0.39. by far the hgihest ratings with weak bad rating.
+
+```{r echo=FALSE, B.boxPlot4}
+#boxplot for the critic acidity quality
+ggplot(aes(x = rating, y = citric.acid), data = rw) +
+  geom_boxplot() +
+  stat_summary(fun.y = median, geom = 'point', shape = 4) +
+    coord_cartesian(ylim = c(0, 0.76)) +
+  labs(x = 'Quality')
+by(rw$citric.acid, rw$rating, summary)
+
+```
+
+Boxplot of the sulphates quality with a center median. The bad median 0.56, average 0.61, excellent 0.74. An excellent rating showing.
+
+```{r echo=FALSE, B.boxPlot5}
+#boxplot for the sulphates quality
+ggplot(aes(x = rating, y = sulphates), data = rw) +
+  geom_boxplot() +
+  stat_summary(fun.y = median, geom = 'point', shape = 4) +
+  coord_cartesian(ylim = c(0.2, 1.1)) +
+  labs(x = 'Quality')
+by(rw$sulphates, rw$rating, summary)
+
+```
+
+Bellow is the critc acid vs the log10 sulphates. We notice that the higher critic acid the higher is the sulphate which indecates a correlation. we note that the correlation is 0.33 which is positive.
+
+```{r echo=FALSE, BPlot6}
+# Plot citric acid vs log10 sulphates
+ggplot(data = rw, aes(x = log10(sulphates), y = citric.acid)) +
+  geom_point(color = "#008000", alpha = 1/2, size = 1, position = 'jitter') +
+  stat_smooth(method = 'lm')
+cor(log10(rw$sulphates), rw$citric.acid)
+```
+
+critic acid vs the volatile acidity plot that shows the relation between the two. the correlation coefficient is -0.56 which makes sense since the wine most likely not to have two high acids in the making.
+
+```{r echo=FALSE, BPlot7}
+# Plot citric acid vs volatile acidity
+ggplot(data = rw, aes(x = citric.acid, y = volatile.acidity)) +
+  geom_point(color = "#008000", alpha = 1/2, size = 1, position = 'jitter') + 
+  stat_smooth(method = 'lm')
+cor(rw$citric.acid, rw$volatile.acidity)
+```
+
+the plot bellow shows the relations between the ph and alchol and its around 0.21 which is weak positive.
+
+```{r echo=FALSE, BPlot9}
+# Plot alcohol vs pH
+ggplot(data = rw, aes(x = alcohol, y = pH)) +
+  geom_point(color = "#008000", alpha = 1/2, size = 1, position = 'jitter') +
+  stat_smooth(method = 'lm')
+cor(rw$pH, rw$alcohol)
+```
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \investigation. How did the feature(s) of interest vary with other features in \the dataset?
+
+The sulphates and the citic acid seems to be in high amounts which indecates that they're correlated. The volatile acidity and the critic acid are negatively correlated. The correlation between the critic acid and ph level are also negative. Alcohol and ph were weakly correlated.
+
+In the boxplots we took a look at the quality of ph, critic acid, alcohol, volatile acid, and sulphates. The results were interesting. The ph didnt show much change between the ratings(reference the boxplot for ph). The critic acid showed the highest median for the excellent ratings with the 0.39 median(reference the boxplot for the critic acid). The alcohol median showed 11.6 over the two 10 medians of bad and average which shows that the hgiher alcohol the better the wine is. The volatile acidity showed a bad rating of 0.68 vs the excellent 0.37 which shows that the higher the volatile aciddity the worse the wine becomes.
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+crirtc acid and ph level were correlated negatvely, as well as the volatile acididty with the critic acid.
+
+### What was the strongest relationship you found?
+
+Citric Acid and Volatile Acidity (-0.563)
+
+# Multivariate Plots Section
+
+In the scatterplot bellow we look at the alchol vs sulphates and we notice that the average rating quality increases with the increase of sulphates while is excellent ratings the more alcohol(with a specific sulphates) the better the wine.
+
+```{r echo=FALSE, MPlot1}
+#A facet wrapped plot of alcohol and sulphates relations
+ggplot(data = rw,
+       aes(x = log10(sulphates), y = alcohol,
+           color = quality)) +
+  geom_point() + 
+  facet_wrap(~rating)
+```
+
+Now we observe the relation between the critic acid vs alcohol we notice that at some critic acid level with higher alcohol the wine get the better rating of excellent.
+
+```{r echo=FALSE, MPlot2}
+#facet wrapped Citric acid vs Alcohol relations
+ggplot(data = rw,
+       aes(x = citric.acid, y = alcohol,
+           color = quality)) +
+  geom_point() +
+  facet_wrap(~rating)
+```
+
+Looking the relations between critic acid and sulphates, we notice that mainly the lower the sulphates the worse the wine gets, however the avarage rating and the bad rating at some cases share the same sulphates which means another variable is responsible for the quality. Excellent quality is great with higher sulphates and critic acid.
+
+```{r echo=FALSE, MPlot3}
+#facet wrapped relations of sulphates vs Citric acid
+ggplot(data = rw,
+       aes(x = log10(sulphates), y = citric.acid,
+           color = quality)) +
+  geom_point() + 
+  facet_wrap(~rating)
+```
+
+Now lets look at the other variables in relations with critic acid, fist we look at residual sugar vs critic acid. 
+Nothing is too noteworthy between the two.
+
+```{r echo=FALSE, VScriticAcid1}
+#facet wrapped Residual Sugar vs Citric Acid
+ggplot(data = rw,
+       aes(x = residual.sugar, y = citric.acid,
+           color = quality)) +
+  coord_cartesian(xlim = c(0, 4)) +
+  geom_point() +
+  facet_wrap(~rating)
+```
+
+Next we look at the volatile acidity and critic acid. 
+
+We notice how when having higher volatile acidity level the worse the wine gets. Also the lower the volatile the better the wine.
+
+we had to take a look at the median for both to get a better look. we notice the median for excellent is 0.37 while the median for bad is 0.68 which is a big differance.
+
+```{r echo=FALSE, VScriticAcid2}
+#facet wrapped Volatile Acidity vs Citric Acid
+ggplot(data = rw,
+       aes(x = volatile.acidity, y = citric.acid,
+           color = quality)) +
+  coord_cartesian(xlim = c(0, 1.1), ylim = c(0, 0.625)) +
+  geom_point() +
+  facet_wrap(~rating)
+#getting the summary of the ratings for volatile vs critic
+by(rw$volatile.acidity, rw$rating, summary)
+```
+
+since the volatile acidity had an interesting results we compare it with alcohol. we notice that the higher volatile acidity is still effecting the bad wine even with higher alcohol
+
+```{r echo=FALSE, MPlot4}
+#relations between volatile acidity vs alcohol
+ggplot(data = rw,
+       aes(x = volatile.acidity, y = alcohol,
+           color = quality)) +
+  geom_point() +
+  facet_wrap(~rating)
+```
+
+Since the higher sulphates meant better wine and lower volatile acidity meant better wine we look at the relations between the two.
+
+This strengthen our observation, the wine with higher sulphates AND lower volatile acidity is a better wine while the wine with lower sulphates AND higher volatile acidity is bad.
+
+```{r echo=FALSE, MPlot5}
+#facet wrapped sulphates vs volatile acidity
+ggplot(data = rw,
+       aes(x = volatile.acidity, y = log10(sulphates),
+           color = quality)) +
+  geom_point() +
+  facet_wrap(~rating)
+```
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the  investigation. Were there features that strengthened each other in terms of  looking at your feature(s) of interest?
+
+There are few variables that stood out from the get go, higher alcohol made for a good wine, as well as higher sulphates and critic acid. The lower the volatile acidity made for a bad wine.
+
+### Were there any interesting or surprising interactions between features?
+
+Yes, with higher sulpahtes and specific critic acid the wine jumped from average to excellent. The critic acid and acohol proved to make the wine better as they go higher in levels. lower volatile acidity had bad wine ratings.
+
+It seems that lower sulphates, higher volatile acidity, lower alcohol and ciritic acid usually made for a bad wine.
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+
+No.
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, Plot_One}
+# Create conditional density plot between volatile acidity vs the quality
+
+cdplot(rating ~ volatile.acidity, data = rw,
+       xlab = 'Volatile Acidity', 
+       ylab = 'Quality', 
+       main='Volatile Acidity vs Quality')
+```
+
+### Description One
+
+As we can observe from the plot the greater the volatile acidity is the greater the chance of the excellent rating DROPS. And the lower the volatile acidity is the better the wine gets. In the plot volatile acidity that is greater than 1.4 has 100% chance of being bad which conferms the findings. 
+
+### Plot Two
+
+```{r echo=FALSE, Plot_Two}
+#creating a boxplot of alcohol vs quality
+ggplot(aes(x = rating, y = alcohol, fill = rating), data = rw) +
+  geom_boxplot() +
+  stat_summary(fun.y = median, geom = 'point', shape = 4) +
+  labs(x = 'Quality', y = 'Alcohol', 
+       title ='Alcohol vs. Quality')
+```
+
+### Description Two
+
+In the Boxplot above, its clear how the higher alcohol effects the quality of the wine positively.
+
+### Plot Three
+
+```{r echo=FALSE, Plot_Three}
+#Creating a scatter plot to show the alcohol vs sulphates relations
+ggplot(data = rw,
+       aes(x = log10(sulphates), y = alcohol,
+           color = quality)) +
+  geom_point(alpha = 0.6, size = 1.2, position = 'jitter') +
+    facet_wrap(~rating) +
+  labs(x = 'Sulphates (log10)', y = 'Alcohol') +
+  ggtitle('Alcohol vs Sulphates')
+```
+
+### Description Three
+
+According to the scatter plot above the lower sulpahtes makes a bad wine as well as the lower alcohol. The higher the sulphates and alcohol makes an excellent wine. Its clear how these two effect the quality of the wine.
+
+------
+
+# Reflection
+
+The red wine dataset contains around 1500+ observations with 13 variables. The main objective of the study is determain the quality of the wine and what makes the wine good. we devided the ratings to bad, avarage, excellent. this was our main track. we looked at the chemical componant of the wine and dived into the making of the wine, which is better and which is bad?
+
+Turns out that the alcohol level played a big role into this, for having a higher alcohol indicated having a better wine, however alcohol alone cant determain the quality. I had to look into other variables such as critic acid and sulphates. It turns out to be successful. The higher critic and sulphates in specif range made for a great wine. Finally I looked at the volatile acidity which indicated the lower it was the better the wine was.
+
+## Struggles:
+
+The dataset was limited to few variables only and I was hoping for more variables to further strenthen my findings. A lot of variables that I studied led to dead ends which always sucks expecially if you spend long time on them.
+
+
+
