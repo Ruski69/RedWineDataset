@@ -1,5 +1,5 @@
 ---
-title: "PrijectEDA"
+title: "Project_EDA"
 output: html_document
 ---
 
